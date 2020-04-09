@@ -5,6 +5,7 @@ import (
 	"net"
 	"github.com/apparentlymart/go-cidr/cidr"
 	"strings"
+	"log"
 )
 
 type SubnetInfo struct {
@@ -14,10 +15,16 @@ type SubnetInfo struct {
 	lastUsuableAddress net.IP
 	totalAddressCount uint64
 }
+
+type PortsInfo struct {
+	commonPortNumbers []int
+	transportLayerProtocol string
+	extraInfoLink string
+}
 func parseIPInfo(ipString string) (net.IP, *net.IPNet) {
 	ip, ipnet, err := net.ParseCIDR(ipString)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 	return ip, ipnet
 }
@@ -48,34 +55,78 @@ func getSubnetInfo(ipnet *net.IPNet) SubnetInfo {
 	return subnetInfoResponse
 }
 
-func getCommonPorts(service string) (int, string) {
-	var transportProtocol string
+func populatePortsInfo(portNums []int, transportProto, link string) PortsInfo {
+	portsInfoResponse := PortsInfo{
+		commonPortNumbers : portNums,
+		transportLayerProtocol : transportProto,
+		extraInfoLink : link,
+	}
+	return portsInfoResponse
+}
 
-	// if dns is used, reassign to domain string and search using net.LookupPort inbuilt function.
-	if strings.ToLower(service) == "dns" {
-		service = "domain"
+func getWikiName(service string) string {
 
-		portNum, err := net.LookupPort("udp", service)
-		if err != nil {
-			panic(err)
-		}
-		transportProtocol = "UDP"
-
-		fmt.Println(transportProtocol, portNum)
-
-		return portNum, transportProtocol
-	} else {
-		portNum, err := net.LookupPort("tcp", service)
-		if err != nil {
-			panic(err)
-		}
-		transportProtocol = "TCP"
-
-		fmt.Println(transportProtocol, portNum)
-
-		return portNum, transportProtocol
+	abbreviationsToWikiName := map[string]string{
+		"dns" : "Domain_Name_System",
+		"dhcp" : "Dynamic_Host_Configuration_Protocol",
+		"rdp" : "Remote_Desktop_Protocol",
+		"smtp" : "Simple_Network_Management_Protocol",
+		"ssh" : "Secure_Shell",
+		"telnet" : "telnet",
+		"ftp" : "File_Transfer_Protocol",
+		"http" : "Hypertext_Transfer_Protocol",
+		"https" : "HTTPS",
+		"imap" : "Internet_Message_Access_Protocol",
+		"pop3" : "Post_Office_Protocol",
+		"ldap" : "Lightweight_Directory_Access_Protocol",
+		"bgp" : "Border_Gateway_Protocol", 
 	}
 
+	return abbreviationsToWikiName[service]
+}
+
+func printPortInfo(portInfo PortsInfo) {
+	fmt.Printf("Port Numbers: %d\nTransport Protocol(s): %s\nFor more information on this protocol visit %s\n",
+	portInfo.commonPortNumbers, portInfo.transportLayerProtocol, portInfo.extraInfoLink)
+}
+
+func getCommonPorts(service string) PortsInfo {
+
+	wikiString := "https://en.wikipedia.org/wiki/"
+
+	switch strings.ToLower(service) {
+	case "dns":
+		info := populatePortsInfo([]int{53}, "UDP", wikiString + getWikiName(service))
+		return info
+
+	case "dhcp":
+		info := populatePortsInfo([]int{67,68}, "UDP", wikiString + getWikiName(service))
+		return info
+
+	case "rdp":
+		info := populatePortsInfo([]int{3389}, "TCP + UDP", wikiString + getWikiName(service))
+		return info
+
+	case "ldap":
+		info := populatePortsInfo([]int{389}, "TCP + UDP", wikiString + getWikiName(service))
+		return info
+
+	case "bgp":
+		info := populatePortsInfo([]int{179}, "TCP", wikiString + getWikiName(service))
+		return info
+	
+	// Most of the common ports can be retrieved via the in-built net package
+	default:
+		transportProtocol := "tcp"
+		portNum, err := net.LookupPort(transportProtocol, service)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		info := populatePortsInfo([]int{portNum}, strings.ToUpper(transportProtocol), wikiString + getWikiName(service))
+		return info
+
+	}
 }
 
 func ipv4PrivateAddressRange() {
@@ -87,7 +138,6 @@ func main() {
 	myIP := "192.168.1.5/20"
 	ip, ipnet := parseIPInfo(myIP)
 	fmt.Println("IP",ip, ipnet)
-	getSubnetInfo(ipnet)
-	getCommonPorts("http")
-	ipv4PrivateAddressRange()
+	testProto := getCommonPorts("ldap")
+	printPortInfo(testProto)
 }
