@@ -78,11 +78,16 @@ func getCommonPorts(service string) (int, string) {
 
 }
 
+func ipv4PrivateAddressRange() {
+	fmt.Println("The IPv4 private address spaces are:")
+	fmt.Printf("\t10.0.0.0 - 10.255.255.255\n\t172.16.0.0 - 172.31.255.255\n\t192.168.0.0 - 192.168.255.255\n")
+}
+
 func main() {
 	myIP := "192.168.1.5/20"
 	ip, ipnet := parseIPInfo(myIP)
 	fmt.Println("IP",ip, ipnet)
 	getSubnetInfo(ipnet)
 	getCommonPorts("http")
-	addressRangeReminder()
+	ipv4PrivateAddressRange()
 }
