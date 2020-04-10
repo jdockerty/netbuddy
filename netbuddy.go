@@ -38,6 +38,32 @@ func getNetworkAndBroadcast(ipnet *net.IPNet) (net.IP, net.IP) {
 	return networkAddress, broadcastAddress
 }
 
+func subnetIterations(ipnet *net.IPNet, iterations int, printInfo bool) {
+	fmt.Println("Current network:", ipnet)
+	_, lastAddress := getNetworkAndBroadcast(ipnet)
+	prefixBits, _ := ipnet.Mask.Size()
+
+	for i := 1; i < iterations + 1; i++ {
+		nextNetworkAddress := cidr.Inc(lastAddress)
+		nextPrefixString := fmt.Sprint(nextNetworkAddress, "/", prefixBits)
+		fmt.Printf("[%d] Next subnet: %s\n",i, nextPrefixString)
+		_, nextIPNet := parseIPInfo(nextPrefixString)
+		_, lastAddress = getNetworkAndBroadcast(nextIPNet)
+
+		if printInfo {
+			nextSubnetInfo := getSubnetInfo(nextIPNet)
+			printSubnetInfo(nextSubnetInfo)
+			
+		}
+	}
+
+}
+
+func printSubnetInfo(subnet SubnetInfo) {
+	fmt.Printf("Network address: %s\nFirst assignable address: %s\nLast assignable address: %s\nBroadcast address: %s\n\n", 
+	subnet.networkAddress, subnet.firstUsuableAddress, subnet.lastUsuableAddress, subnet.broadcastAddress)
+}
+
 func getSubnetInfo(ipnet *net.IPNet) SubnetInfo {
 	networkAddr, broadcastAddr := getNetworkAndBroadcast(ipnet)
 	firstUsuableAddr := cidr.Inc(networkAddr)
@@ -130,14 +156,18 @@ func getCommonPorts(service string) PortsInfo {
 }
 
 func ipv4PrivateAddressRange() {
-	fmt.Println("The IPv4 private address spaces are:")
+	fmt.Println("The RFC 1918 IPv4 private address spaces are:")
 	fmt.Printf("\t10.0.0.0 - 10.255.255.255\n\t172.16.0.0 - 172.31.255.255\n\t192.168.0.0 - 192.168.255.255\n")
 }
 
 func main() {
 	myIP := "192.168.1.5/20"
 	ip, ipnet := parseIPInfo(myIP)
-	fmt.Println("IP",ip, ipnet)
+	fmt.Println("IP and prefix",ip, ipnet)
 	testProto := getCommonPorts("ldap")
 	printPortInfo(testProto)
+	subnetIterations(ipnet, 3, true)
+	testInfo := getSubnetInfo(ipnet)
+	printSubnetInfo(testInfo)
+
 }
