@@ -4,9 +4,15 @@ import (
 	"fmt"
 	"net"
 	"github.com/apparentlymart/go-cidr/cidr"
+	// "github.com/voxelbrain/goptions"
 	"strings"
 	"log"
+	"flag"
+	"os"
+
 )
+
+
 
 type SubnetInfo struct {
 	networkAddress net.IP
@@ -21,10 +27,11 @@ type PortsInfo struct {
 	transportLayerProtocol string
 	extraInfoLink string
 }
+
 func parseIPInfo(ipString string) (net.IP, *net.IPNet) {
 	ip, ipnet, err := net.ParseCIDR(ipString)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Error parsing IP and CIDR notation, ensure it looks something like '192.168.3.1/24'")
 	}
 	return ip, ipnet
 }
@@ -38,8 +45,7 @@ func getNetworkAndBroadcast(ipnet *net.IPNet) (net.IP, net.IP) {
 	return networkAddress, broadcastAddress
 }
 
-func subnetIterations(ipnet *net.IPNet, iterations int, printInfo bool) {
-	fmt.Println("Current network:", ipnet)
+func subnetIterations(ipnet *net.IPNet, iterations int) {
 	_, lastAddress := getNetworkAndBroadcast(ipnet)
 	prefixBits, _ := ipnet.Mask.Size()
 
@@ -50,17 +56,15 @@ func subnetIterations(ipnet *net.IPNet, iterations int, printInfo bool) {
 		_, nextIPNet := parseIPInfo(nextPrefixString)
 		_, lastAddress = getNetworkAndBroadcast(nextIPNet)
 
-		if printInfo {
-			nextSubnetInfo := getSubnetInfo(nextIPNet)
-			printSubnetInfo(nextSubnetInfo)
+		nextSubnetInfo := getSubnetInfo(nextIPNet)
+		printSubnetInfo(nextSubnetInfo)
 			
-		}
 	}
 
 }
 
 func printSubnetInfo(subnet SubnetInfo) {
-	fmt.Printf("Network address: %s\nFirst assignable address: %s\nLast assignable address: %s\nBroadcast address: %s\n\n", 
+	fmt.Printf("Network: %s\nFirst assignable: %s\nLast assignable: %s\nBroadcast: %s\n", 
 	subnet.networkAddress, subnet.firstUsuableAddress, subnet.lastUsuableAddress, subnet.broadcastAddress)
 }
 
@@ -146,6 +150,7 @@ func getCommonPorts(service string) PortsInfo {
 		transportProtocol := "tcp"
 		portNum, err := net.LookupPort(transportProtocol, service)
 		if err != nil {
+			fmt.Printf("Unsupported service lookup: %s\n", service)
 			log.Fatal(err)
 		}
 
@@ -160,14 +165,64 @@ func ipv4PrivateAddressRange() {
 	fmt.Printf("\t10.0.0.0 - 10.255.255.255\n\t172.16.0.0 - 172.31.255.255\n\t192.168.0.0 - 192.168.255.255\n")
 }
 
+
+
 func main() {
-	myIP := "192.168.1.5/20"
-	ip, ipnet := parseIPInfo(myIP)
-	fmt.Println("IP and prefix",ip, ipnet)
-	testProto := getCommonPorts("ldap")
-	printPortInfo(testProto)
-	subnetIterations(ipnet, 3, true)
-	testInfo := getSubnetInfo(ipnet)
-	printSubnetInfo(testInfo)
+	showCmd := flag.NewFlagSet("show", flag.ExitOnError)
+
+	subnetCmd := flag.NewFlagSet("subnet", flag.ExitOnError)
+	subnetDisplay := subnetCmd.String("display", "", "Displays the various addresses within a given subnet.")
+	subnetIterate := subnetCmd.Int("iterate", 0, "Iterates over and displays the next X networks for a prefix.")
+	subnetAddressCount := subnetCmd.String("count", "", "Displays the total available addresses for a given network.")
+
+	switch os.Args[1] {
+	case "show":
+		showCmd.Parse(os.Args[2:])
+		switch os.Args[2] {
+		case "ipv4range":
+			ipv4PrivateAddressRange()
+		case "interfaces":
+			fmt.Println("TO DO")
+		case "service":
+			portInfo := getCommonPorts(os.Args[3])
+			printPortInfo(portInfo)
+		default:
+			fmt.Println("Usage: netbuddy show <option> <input>")
+			fmt.Println("Options:\n\tipv4range - Show RFC 1918 IPv4 address range. \tNote: This does not take an input.")
+			fmt.Println("\tmac - Show MAC address of an interface.")
+			fmt.Println("\tservice - Shows port and information for a particular service e.g. SSH")
+			fmt.Println("\nExamples: \n\t netbuddy show service ssh\n\t netbuddy show ipv4range")
+		}
+	
+	
+	case "subnet":
+		subnetCmd.Parse(os.Args[2:])
+		
+		if os.Args[2] == "help" {
+			fmt.Println("Usage: netbuddy subnet <arg> <input>")
+			fmt.Println("Args:\n\t-display: Shows various information about a particular IP and CIDR, e.g. 192.168.4.20/19")
+			fmt.Println("\t-count: Show the total number of addresses in the provided network.")
+			fmt.Println("\t-iterate: Show the next X iterations of a particular prefix to the network. E.g. Input: 192.168.0.0/24. Output: 192.168.1.0/24, 192.168.2.0/24")
+			fmt.Println("\nExamples: \n\t netbuddy subnet -count 172.31.5.9/19\n\t netbuddy subnet -iterate 2 192.168.0.0/24")
+		}
+		if len(*subnetDisplay) != 0 {
+			_, ipnet := parseIPInfo(*subnetDisplay)
+			subnetInfo := getSubnetInfo(ipnet)
+			printSubnetInfo(subnetInfo)
+		}
+
+		if *subnetIterate > 0 {
+			_, ipnet := parseIPInfo(os.Args[4])
+			subnetIterations(ipnet, *subnetIterate)
+		}
+
+		if len(*subnetAddressCount) != 0 {
+			_, ipnet := parseIPInfo(*subnetAddressCount)
+			subnetInfo := getSubnetInfo(ipnet)
+			fmt.Printf("There are %d total available addresses in this network.\n", subnetInfo.totalAddressCount)
+		}
+
+	}
+
 
 }
