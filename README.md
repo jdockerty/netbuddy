@@ -1,2 +1,6 @@
 # NetBuddy
-Simple CLI tool for network information: subnet calculations, port numbers, underlying transport protocols etc.
+Simple CLI tool for networking related information:
+* Addresses contained within a network
+* Total address count for a particular subnet mask.
+* Showing common ports for services
+* etc...
