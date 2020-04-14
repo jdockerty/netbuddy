@@ -5,7 +5,36 @@ Simple CLI tool for networking related information:
 * Showing common ports for services
 * etc...
 
+Examples are shown below.
 
-## Travis CI
+This project was also done for a CI server to conduct tests on new commits on the remote master branch, the choice made for Travis CI.
+
+## Installation
+
+Executing the commands below will download the repo onto your machine, you can then move the pre-built binary into your bin folder for execution from the terminal.
+
+```
+git clone https://github.com/jdockerty/NetBuddy.git
+cd NetBuddy/
+sudo mv netbuddy /usr/local/bin
+```
+
+## Examples
+
+Running the command `net buddy subnet -display <IP/X>` will show the network, broadcast, first and last assignable addresses for the subnet. <br><br>
+<img src="https://github.com/jdockerty/NetBuddy/blob/master/READMEimages/displayExample.png">
+
+Another example is also for displaying the common services. <br><br>
+<img src="https://github.com/jdockerty/NetBuddy/blob/master/READMEimages/showBGPExample.png">
+
+
+## Go Testing and Travis CI
+_This section is for my personal notes_
+
+A small number of tests were completed in the `netbuddy_test.go`, this provides a standardised way to test the return variables from varying functions, ensuring they remain the same across adding other features or refactoring code.
+
+Travis CI was setup to provide a way in which automated tests can be continually conducted upon each new commit on the remote master branch. The tests which are run are those which have been written in the corresponding test file.
+
+The image below shows the most recent build outcomes from running the tests provided.
 
 <img src="https://travis-ci.com/jdockerty/NetBuddy.svg?token=xPjFq5JeCTp415MsJdAD&branch=master">
