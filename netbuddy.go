@@ -22,6 +22,7 @@ type PortsInfo struct {
 	commonPortNumbers      []int
 	transportLayerProtocol string
 	extraInfoLink          string
+	err int
 }
 
 func parseIPInfo(ipString string) (net.IP, *net.IPNet) {
@@ -48,7 +49,7 @@ func subnetIterations(ipnet *net.IPNet, iterations int) {
 	for i := 1; i < iterations+1; i++ {
 		nextNetworkAddress := cidr.Inc(lastAddress)
 		nextPrefixString := fmt.Sprint(nextNetworkAddress, "/", prefixBits)
-		fmt.Printf("[%d] Next subnet: %s\n", i, nextPrefixString)
+		fmt.Printf("\n[%d] Next subnet: %s\n", i, nextPrefixString)
 		_, nextIPNet := parseIPInfo(nextPrefixString)
 		_, lastAddress = getNetworkAndBroadcast(nextIPNet)
 
@@ -81,11 +82,12 @@ func getSubnetInfo(ipnet *net.IPNet) SubnetInfo {
 	return subnetInfoResponse
 }
 
-func populatePortsInfo(portNums []int, transportProto, link string) PortsInfo {
+func populatePortsInfo(portNums []int, transportProto, link string, errorNum int) PortsInfo {
 	portsInfoResponse := PortsInfo{
 		commonPortNumbers:      portNums,
 		transportLayerProtocol: transportProto,
 		extraInfoLink:          link,
+		err: errorNum,
 	}
 	return portsInfoResponse
 }
@@ -112,33 +114,37 @@ func getWikiName(service string) string {
 }
 
 func printPortInfo(portInfo PortsInfo) {
-	fmt.Printf("Port Numbers: %d\nTransport Protocol(s): %s\nFor more information on this protocol visit %s\n",
+	if portInfo.err != 1 {
+		fmt.Printf("Port Numbers: %d\nTransport Protocol(s): %s\nFor more information on this protocol visit %s\n",
 		portInfo.commonPortNumbers, portInfo.transportLayerProtocol, portInfo.extraInfoLink)
+	}
+
 }
 
 func getCommonPorts(service string) PortsInfo {
 
 	wikiString := "https://en.wikipedia.org/wiki/"
+	service = strings.ToLower(service)
 
-	switch strings.ToLower(service) {
+	switch service {
 	case "dns":
-		info := populatePortsInfo([]int{53}, "UDP", wikiString+getWikiName(service))
+		info := populatePortsInfo([]int{53}, "UDP", wikiString+getWikiName(service), 0)
 		return info
 
 	case "dhcp":
-		info := populatePortsInfo([]int{67, 68}, "UDP", wikiString+getWikiName(service))
+		info := populatePortsInfo([]int{67, 68}, "UDP", wikiString+getWikiName(service), 0)
 		return info
 
 	case "rdp":
-		info := populatePortsInfo([]int{3389}, "TCP + UDP", wikiString+getWikiName(service))
+		info := populatePortsInfo([]int{3389}, "TCP + UDP", wikiString+getWikiName(service), 0)
 		return info
 
 	case "ldap":
-		info := populatePortsInfo([]int{389}, "TCP + UDP", wikiString+getWikiName(service))
+		info := populatePortsInfo([]int{389}, "TCP + UDP", wikiString+getWikiName(service), 0)
 		return info
 
 	case "bgp":
-		info := populatePortsInfo([]int{179}, "TCP", wikiString+getWikiName(service))
+		info := populatePortsInfo([]int{179}, "TCP", wikiString+getWikiName(service), 0)
 		return info
 
 	// Most of the common ports can be retrieved via the in-built net package
@@ -147,10 +153,11 @@ func getCommonPorts(service string) PortsInfo {
 		portNum, err := net.LookupPort(transportProtocol, service)
 		if err != nil {
 			fmt.Printf("Unsupported service lookup: %s\n", service)
-			log.Fatal(err)
+			info := populatePortsInfo([]int{}, "", "", 1)
+			return info
 		}
 
-		info := populatePortsInfo([]int{portNum}, strings.ToUpper(transportProtocol), wikiString+getWikiName(service))
+		info := populatePortsInfo([]int{portNum}, strings.ToUpper(transportProtocol), wikiString+getWikiName(service), 0)
 		return info
 
 	}
@@ -171,7 +178,7 @@ func subnetCmdHelp() {
 func showCmdHelp() {
 	fmt.Println("Usage: netbuddy show <option> <input>")
 	fmt.Println("Options:\n\tipv4range - Show RFC 1918 IPv4 address range. \tNote: This does not take an input.")
-	fmt.Println("\tmac - Show MAC address of an interface.")
+	fmt.Println("\tinterfaces - Show interface information on this machine.")
 	fmt.Println("\tservice - Shows port and information for a particular service e.g. SSH")
 	fmt.Println("\nExamples: \n\t netbuddy show service ssh\n\t netbuddy show ipv4range")
 }
@@ -191,7 +198,7 @@ func main() {
 		case "ipv4range":
 			ipv4PrivateAddressRange()
 		case "interfaces":
-			fmt.Println("TO DO")
+			fmt.Println("In development...")
 		case "service":
 			portInfo := getCommonPorts(os.Args[3])
 			printPortInfo(portInfo)
@@ -223,7 +230,8 @@ func main() {
 			subnetInfo := getSubnetInfo(ipnet)
 			fmt.Printf("There are %d total available addresses in this network.\n", subnetInfo.totalAddressCount)
 		}
-
+	default:
+		fmt.Printf("The currently supported commands are: \n- show\n- subnet\n Use 'netbuddy <command> help' for more information.\n")
 	}
 
 }

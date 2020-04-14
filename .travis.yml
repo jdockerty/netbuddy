@@ -13,4 +13,4 @@ git:
 install: true
 
 script:
-  - go test -v
+  - go test -v ./...
