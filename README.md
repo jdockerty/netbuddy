@@ -24,7 +24,7 @@ sudo mv netbuddy /usr/local/bin
 Running the command `netbuddy subnet -display <IP/X>` will show the network, broadcast, first and last assignable addresses for the subnet. <br><br>
 <img src="https://github.com/jdockerty/NetBuddy/blob/master/READMEimages/displayExample.png">
 
-Another example is also for displaying the common services. <br><br>
+Another example is also for displaying the common services or protocol, such as BGP. <br><br>
 <img src="https://github.com/jdockerty/NetBuddy/blob/master/READMEimages/showBGPExample.png">
 
 
