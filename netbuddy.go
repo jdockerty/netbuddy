@@ -1,6 +1,7 @@
 package main
 
 import (
+	"strconv"
 	"flag"
 	"fmt"
 	"github.com/apparentlymart/go-cidr/cidr"
@@ -168,6 +169,22 @@ func getCommonPorts(service string) portsData {
 	}
 }
 
+func convertToCIDRNotation(mask string) int {
+	maskAsSlice := strings.Split(mask, ".")
+	var byteMaskSlice []byte
+	for _, value := range maskAsSlice {
+		stringToInt, err := strconv.Atoi(value)
+		if err != nil {
+			fmt.Println("Error parsing subnet mask, ensure it is in the form X.X.X.X")
+		}
+		byteMaskSlice = append(byteMaskSlice, byte(stringToInt))
+	}
+	maskAsIPMaskType := net.IPv4Mask(byteMaskSlice[0], byteMaskSlice[1], byteMaskSlice[2], byteMaskSlice[3]) // .IPv4Mask expects form (a, b, c, d byte)
+	sizeOfMask, _ := maskAsIPMaskType.Size()
+	fmt.Printf("%s is equivalent to the CIDR notation of /%d\n", mask, sizeOfMask)
+	return sizeOfMask
+}
+
 func showinterfaceData() bool {
 	interfaceSlice, _ := net.Interfaces()
 	for _, interfaceData := range interfaceSlice {
@@ -257,7 +274,7 @@ func main() {
 		}
 
 		if len(*subnetDecToCIDR) != 0 {
-			fmt.Println("In dev...")
+			convertToCIDRNotation(*subnetDecToCIDR)
 		}
 	default:
 		fmt.Printf("The currently supported commands are: \n- show\n- subnet\n Use 'netbuddy <command> help' for more information.\n")

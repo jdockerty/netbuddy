@@ -69,3 +69,12 @@ func TestShowInterfaceData(t *testing.T) {
 		t.Errorf("Failed to display network interface information.")
 	}
 }
+
+func TestConvertToCIDR(t *testing.T) {
+	testSubnetMask := "255.255.255.192"
+	result := convertToCIDRNotation(testSubnetMask)
+
+	if result != 26 {
+		t.Errorf("Incorrect mask returned. Expected /26, but returned /%d", result)
+	}
+}
