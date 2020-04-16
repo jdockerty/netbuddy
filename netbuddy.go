@@ -1,16 +1,16 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"github.com/apparentlymart/go-cidr/cidr"
-	"net"
-	"flag"
 	"log"
+	"net"
 	"os"
 	"strings"
 )
 
-type SubnetInfo struct {
+type subnetData struct {
 	networkAddress      net.IP
 	broadcastAddress    net.IP
 	firstUsuableAddress net.IP
@@ -18,11 +18,18 @@ type SubnetInfo struct {
 	totalAddressCount   uint64
 }
 
-type PortsInfo struct {
+type portsData struct {
 	commonPortNumbers      []int
 	transportLayerProtocol string
 	extraInfoLink          string
-	err int
+	err                    int
+}
+
+type interfaceData struct {
+	name    string
+	ipAddr  string
+	macAddr string
+	flags   string
 }
 
 func parseIPInfo(ipString string) (net.IP, *net.IPNet) {
@@ -43,35 +50,33 @@ func getNetworkAndBroadcast(ipnet *net.IPNet) (net.IP, net.IP) {
 }
 
 func subnetIterations(ipnet *net.IPNet, iterations int) {
-	_, lastAddress := getNetworkAndBroadcast(ipnet)
 	prefixBits, _ := ipnet.Mask.Size()
 
 	for i := 1; i < iterations+1; i++ {
-		nextNetworkAddress := cidr.Inc(lastAddress)
-		nextPrefixString := fmt.Sprint(nextNetworkAddress, "/", prefixBits)
+		nextPrefixString, _ := cidr.NextSubnet(ipnet, prefixBits)
 		fmt.Printf("\n[%d] Next subnet: %s\n", i, nextPrefixString)
-		_, nextIPNet := parseIPInfo(nextPrefixString)
-		_, lastAddress = getNetworkAndBroadcast(nextIPNet)
 
-		nextSubnetInfo := getSubnetInfo(nextIPNet)
-		printSubnetInfo(nextSubnetInfo)
+		_, nextIPNet := parseIPInfo(nextPrefixString.String())
+		nextsubnetData := getSubnetData(nextIPNet)
 
+		printSubnetData(nextsubnetData)
+		ipnet = nextPrefixString
 	}
 
 }
 
-func printSubnetInfo(subnet SubnetInfo) {
+func printSubnetData(subnet subnetData) {
 	fmt.Printf("Network: %s\nFirst assignable: %s\nLast assignable: %s\nBroadcast: %s\n",
 		subnet.networkAddress, subnet.firstUsuableAddress, subnet.lastUsuableAddress, subnet.broadcastAddress)
 }
 
-func getSubnetInfo(ipnet *net.IPNet) SubnetInfo {
+func getSubnetData(ipnet *net.IPNet) subnetData {
 	networkAddr, broadcastAddr := getNetworkAndBroadcast(ipnet)
 	firstUsuableAddr := cidr.Inc(networkAddr)
 	lastUsuableAddr := cidr.Dec(broadcastAddr)
 	totalAddresses := getAddressCount(ipnet)
 
-	subnetInfoResponse := SubnetInfo{
+	subnetDataResponse := subnetData{
 		networkAddress:      networkAddr,
 		broadcastAddress:    broadcastAddr,
 		firstUsuableAddress: firstUsuableAddr,
@@ -79,17 +84,17 @@ func getSubnetInfo(ipnet *net.IPNet) SubnetInfo {
 		totalAddressCount:   totalAddresses,
 	}
 
-	return subnetInfoResponse
+	return subnetDataResponse
 }
 
-func populatePortsInfo(portNums []int, transportProto, link string, errorNum int) PortsInfo {
-	portsInfoResponse := PortsInfo{
+func populatePortsData(portNums []int, transportProto, link string, errorNum int) portsData {
+	portsDataResponse := portsData{
 		commonPortNumbers:      portNums,
 		transportLayerProtocol: transportProto,
 		extraInfoLink:          link,
-		err: errorNum,
+		err:                    errorNum,
 	}
-	return portsInfoResponse
+	return portsDataResponse
 }
 
 func getWikiName(service string) string {
@@ -113,38 +118,38 @@ func getWikiName(service string) string {
 	return abbreviationsToWikiName[service]
 }
 
-func printPortInfo(portInfo PortsInfo) {
+func printPortData(portInfo portsData) {
 	if portInfo.err != 1 {
 		fmt.Printf("Port Numbers: %d\nTransport Protocol(s): %s\nFor more information on this protocol visit %s\n",
-		portInfo.commonPortNumbers, portInfo.transportLayerProtocol, portInfo.extraInfoLink)
+			portInfo.commonPortNumbers, portInfo.transportLayerProtocol, portInfo.extraInfoLink)
 	}
 
 }
 
-func getCommonPorts(service string) PortsInfo {
+func getCommonPorts(service string) portsData {
 
 	wikiString := "https://en.wikipedia.org/wiki/"
 	service = strings.ToLower(service)
 
 	switch service {
 	case "dns":
-		info := populatePortsInfo([]int{53}, "UDP", wikiString+getWikiName(service), 0)
+		info := populatePortsData([]int{53}, "UDP", wikiString+getWikiName(service), 0)
 		return info
 
 	case "dhcp":
-		info := populatePortsInfo([]int{67, 68}, "UDP", wikiString+getWikiName(service), 0)
+		info := populatePortsData([]int{67, 68}, "UDP", wikiString+getWikiName(service), 0)
 		return info
 
 	case "rdp":
-		info := populatePortsInfo([]int{3389}, "TCP + UDP", wikiString+getWikiName(service), 0)
+		info := populatePortsData([]int{3389}, "TCP + UDP", wikiString+getWikiName(service), 0)
 		return info
 
 	case "ldap":
-		info := populatePortsInfo([]int{389}, "TCP + UDP", wikiString+getWikiName(service), 0)
+		info := populatePortsData([]int{389}, "TCP + UDP", wikiString+getWikiName(service), 0)
 		return info
 
 	case "bgp":
-		info := populatePortsInfo([]int{179}, "TCP", wikiString+getWikiName(service), 0)
+		info := populatePortsData([]int{179}, "TCP", wikiString+getWikiName(service), 0)
 		return info
 
 	// Most of the common ports can be retrieved via the in-built net package
@@ -153,34 +158,53 @@ func getCommonPorts(service string) PortsInfo {
 		portNum, err := net.LookupPort(transportProtocol, service)
 		if err != nil {
 			fmt.Printf("Unsupported service lookup: %s\n", service)
-			info := populatePortsInfo([]int{}, "", "", 1)
+			info := populatePortsData([]int{}, "", "", 1)
 			return info
 		}
 
-		info := populatePortsInfo([]int{portNum}, strings.ToUpper(transportProtocol), wikiString+getWikiName(service), 0)
+		info := populatePortsData([]int{portNum}, strings.ToUpper(transportProtocol), wikiString+getWikiName(service), 0)
 		return info
 
 	}
 }
 
-func ipv4PrivateAddressRange() {
-	fmt.Println("The RFC 1918 IPv4 private address spaces are:")
-	fmt.Printf("\t10.0.0.0 - 10.255.255.255\n\t172.16.0.0 - 172.31.255.255\n\t192.168.0.0 - 192.168.255.255\n")
+func showinterfaceData() bool {
+	interfaceSlice, _ := net.Interfaces()
+	for _, interfaceData := range interfaceSlice {
+		currentAddr, err := interfaceData.Addrs()
+		if err != nil {
+			fmt.Println("Could not get interface address details.")
+		}
+		fmt.Printf("Interface name: %s\nAssociated IP Addresses: %s\nMAC Address: %s\nOther Info: %s\n\n",
+			interfaceData.Name,
+			currentAddr,
+			interfaceData.HardwareAddr,
+			interfaceData.Flags)
+	}
+	return true
 }
 
-func subnetCmdHelp() {
+func ipv4PrivateAddressRange() bool {
+	fmt.Println("The RFC 1918 IPv4 private address spaces are:")
+	fmt.Printf("\t10.0.0.0 - 10.255.255.255\n\t172.16.0.0 - 172.31.255.255\n\t192.168.0.0 - 192.168.255.255\n")
+	return true
+}
+
+func subnetCmdHelp() bool {
 	fmt.Println("Usage: netbuddy subnet <arg> <input>")
 	fmt.Println("Args:\n\t-display: Shows various information about a particular IP and CIDR, e.g. 192.168.4.20/19")
 	fmt.Println("\t-count: Show the total number of addresses in the provided network.")
 	fmt.Println("\t-iterate: Show the next X iterations of a particular prefix to the network.")
 	fmt.Println("\nExamples: \n\t netbuddy subnet -count 172.31.5.9/19\n\t netbuddy subnet -iterate 2 192.168.0.0/24")
+	return true
 }
-func showCmdHelp() {
+func showCmdHelp() bool {
 	fmt.Println("Usage: netbuddy show <option> <input>")
 	fmt.Println("Options:\n\tipv4range - Show RFC 1918 IPv4 address range. \tNote: This does not take an input.")
 	fmt.Println("\tinterfaces - Show interface information on this machine.")
 	fmt.Println("\tservice - Shows port and information for a particular service e.g. SSH")
 	fmt.Println("\nExamples: \n\t netbuddy show service ssh\n\t netbuddy show ipv4range")
+	return true
 }
 
 func main() {
@@ -190,6 +214,7 @@ func main() {
 	subnetDisplay := subnetCmd.String("display", "", "Displays the various addresses within a given subnet.")
 	subnetIterate := subnetCmd.Int("iterate", 0, "Iterates over and displays the next X networks for a prefix.")
 	subnetAddressCount := subnetCmd.String("count", "", "Displays the total available addresses for a given network.")
+	subnetDecToCIDR := subnetCmd.String("tocidr", "", "Convert the dotted decimal notation of an IPv4 subnet mask to the equivalent CIDR.")
 
 	switch os.Args[1] {
 	case "show":
@@ -198,10 +223,10 @@ func main() {
 		case "ipv4range":
 			ipv4PrivateAddressRange()
 		case "interfaces":
-			fmt.Println("In development...")
+			showinterfaceData()
 		case "service":
 			portInfo := getCommonPorts(os.Args[3])
-			printPortInfo(portInfo)
+			printPortData(portInfo)
 		case "help":
 			showCmdHelp()
 		default:
@@ -216,8 +241,8 @@ func main() {
 		}
 		if len(*subnetDisplay) != 0 {
 			_, ipnet := parseIPInfo(*subnetDisplay)
-			subnetInfo := getSubnetInfo(ipnet)
-			printSubnetInfo(subnetInfo)
+			subnetData := getSubnetData(ipnet)
+			printSubnetData(subnetData)
 		}
 
 		if *subnetIterate > 0 {
@@ -227,8 +252,12 @@ func main() {
 
 		if len(*subnetAddressCount) != 0 {
 			_, ipnet := parseIPInfo(*subnetAddressCount)
-			subnetInfo := getSubnetInfo(ipnet)
-			fmt.Printf("There are %d total available addresses in this network.\n", subnetInfo.totalAddressCount)
+			subnetData := getSubnetData(ipnet)
+			fmt.Printf("There are %d total available addresses in this network.\n", subnetData.totalAddressCount)
+		}
+
+		if len(*subnetDecToCIDR) != 0 {
+			fmt.Println("In dev...")
 		}
 	default:
 		fmt.Printf("The currently supported commands are: \n- show\n- subnet\n Use 'netbuddy <command> help' for more information.\n")

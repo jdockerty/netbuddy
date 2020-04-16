@@ -46,8 +46,26 @@ func TestGetCommonPortsNonSupported(t *testing.T) {
 
 func TestGetSubnetInfo(t *testing.T) {
 	_, ipnet := parseIPInfo("192.168.1.1/23")
-	response := getSubnetInfo(ipnet)
+	response := getSubnetData(ipnet)
 	if response.networkAddress.String() != "192.168.0.0" {
 		t.Errorf("Invalid network address. Expected 192.168.0.0, but returned %s\n", response.networkAddress)
+	}
+}
+
+func TestShowIPv4Range(t *testing.T) {
+	if shouldReturnTrue := ipv4PrivateAddressRange(); shouldReturnTrue != true {
+		t.Errorf("Showing the IPv4 range command did not execute successfully.")
+	}
+}
+
+func TestShowCmdHelp(t *testing.T) {
+	if shouldReturnTrue := showCmdHelp(); shouldReturnTrue != true {
+		t.Errorf("Displaying the help subcommand of 'show' was executed successfully.")
+	}
+}
+
+func TestShowInterfaceData(t *testing.T) {
+	if shouldReturnTrue := showinterfaceData(); shouldReturnTrue != true {
+		t.Errorf("Failed to display network interface information.")
 	}
 }
