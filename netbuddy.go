@@ -211,7 +211,8 @@ func subnetCmdHelp() bool {
 	fmt.Println("Usage: netbuddy subnet <arg> <input>")
 	fmt.Println("Args:\n\t-display: Shows various information about a particular IP and CIDR, e.g. 192.168.4.20/19")
 	fmt.Println("\t-count: Show the total number of addresses in the provided network.")
-	fmt.Println("\t-iterate: Show the next X iterations of a particular prefix to the network.")
+	fmt.Println("\t-iterate: Show the next X subnet iterations of a particular network.")
+	fmt.Println("\t-tocidr: Convert a dotted decimal IPv4 subnet mask to the equivalent CIDR notation, e.g. 255.255.255.192 = /25")
 	fmt.Println("\nExamples: \n\t netbuddy subnet -count 172.31.5.9/19\n\t netbuddy subnet -iterate 2 192.168.0.0/24")
 	return true
 }
