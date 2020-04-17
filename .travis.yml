@@ -8,5 +8,10 @@ git:
 
 install: true
 
+cache:
+  directories:
+    - $HOME/.cache/go-build
+    - $HOME/go/pkg/mod
+
 script:
   - go test -v ./...
