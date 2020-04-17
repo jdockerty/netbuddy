@@ -1,13 +1,13 @@
 package main
 
 import (
-	"strconv"
 	"flag"
 	"fmt"
 	"github.com/apparentlymart/go-cidr/cidr"
 	"log"
 	"net"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -26,12 +26,6 @@ type portsData struct {
 	err                    int
 }
 
-type interfaceData struct {
-	name    string
-	ipAddr  string
-	macAddr string
-	flags   string
-}
 
 func parseIPInfo(ipString string) (net.IP, *net.IPNet) {
 	ip, ipnet, err := net.ParseCIDR(ipString)
@@ -236,7 +230,10 @@ func main() {
 
 	switch os.Args[1] {
 	case "show":
-		showCmd.Parse(os.Args[2:])
+		err := showCmd.Parse(os.Args[2:])
+		if err != nil {
+			panic(err)
+		}
 		switch os.Args[2] {
 		case "ipv4range":
 			ipv4PrivateAddressRange()
@@ -252,8 +249,10 @@ func main() {
 		}
 
 	case "subnet":
-		subnetCmd.Parse(os.Args[2:])
-
+		err := subnetCmd.Parse(os.Args[2:])
+		if err != nil {
+			panic(err)
+		}
 		if os.Args[2] == "help" {
 			subnetCmdHelp()
 		}

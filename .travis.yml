@@ -1,17 +1,32 @@
+# Latest Ubuntu environment on Travis CI
+dist: bionic
+
 language: go
 
 go:
   - master
 
+# Clone only the most recent commit
 git:
   depth: 1
 
-install: true
-
+# Cache directories for faster build times.
 cache:
   directories:
     - $HOME/.cache/go-build
-    - $HOME/go/pkg/mod
+    - $HOME/gopath/pkg/mod
 
+
+# Don't 'go get' dependencies as they're included from vendor/ and cached.
+install: true
+
+
+# Install golangcli-lint for linting Golang code. Command from golangci-lint GitHub installation.
+# This lets us use the golangci-lint run command in the script before running the actual tests.
+before_script:
+  - curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.24.0
+
+# Run these commands for testing. Checks with Golang linter and then unit tests written in netbuddy_test.go
 script:
+  - golangci-lint run 
   - go test -v ./...
