@@ -7,7 +7,7 @@ Simple CLI tool for networking related information:
 
 Examples are shown below.
 
-This project was also done for a CI server to conduct tests on new commits on the remote master branch, the choice was made for Travis CI.
+This project was also conducted for utilising a CI server to perform tests on new commits on the remote master branch, the choice was made for Travis CI.
 
 ## Installation
 
