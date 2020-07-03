@@ -14,18 +14,18 @@ This project was also conducted for utilising a CI server to perform tests on ne
 Executing the commands below will download the repo onto your machine, you can then move the pre-built binary into your bin folder for execution from the terminal.
 
 ```
-git clone https://github.com/jdockerty/NetBuddy.git
-cd NetBuddy/
+git clone https://github.com/jdockerty/netbuddy.git
+cd netbuddy/
 sudo mv netbuddy /usr/local/bin
 ```
 
 ## Examples
 
 Running the command `netbuddy subnet -display <IP/X>` will show the network, broadcast, first and last assignable addresses for the subnet. <br><br>
-<img src="https://github.com/jdockerty/NetBuddy/blob/master/READMEimages/displayExample.png">
+<img src="https://github.com/jdockerty/netbuddy/blob/master/READMEimages/displayExample.png">
 
 Another example is also for displaying the common services or protocol, such as BGP. <br><br>
-<img src="https://github.com/jdockerty/NetBuddy/blob/master/READMEimages/showBGPExample.png">
+<img src="https://github.com/jdockerty/netbuddy/blob/master/READMEimages/showBGPExample.png">
 
 
 ## Go Testing and Travis CI
@@ -39,4 +39,4 @@ Travis CI was setup to provide a way in which automated tests can be continually
 
 The image below shows the most recent build outcome from running the tests provided.
 
-<img src="https://travis-ci.com/jdockerty/NetBuddy.svg?token=xPjFq5JeCTp415MsJdAD&branch=master">
+<img src="https://travis-ci.com/jdockerty/netbuddy.svg?token=xPjFq5JeCTp415MsJdAD&branch=master">
