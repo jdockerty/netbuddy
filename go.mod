@@ -1,4 +1,4 @@
-module github.com/jdockerty/NetBuddy
+module github.com/jdockerty/netbuddy
 
 go 1.14
 
